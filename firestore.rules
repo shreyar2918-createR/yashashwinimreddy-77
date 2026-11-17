@@ -1,0 +1,361 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == "shreyar2918@gmail.com" ||
+        (exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == "admin" &&
+         get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true)
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // 0. System health & connection validation
+    match /test/{docId} {
+      allow read: if true;
+      allow create, update: if docId == 'connection';
+      allow delete: if isAdmin();
+    }
+
+    // Temporary test collection for live database connection verification
+    // Strictly scoped to the connection_status document and valid test payload schema
+    match /test_collection/{docId} {
+      allow get: if docId == 'connection_status';
+      allow list: if isAdmin();
+      allow create, update: if docId == 'connection_status' &&
+        incoming().keys().hasAll(['status', 'clientTimestamp', 'message']) &&
+        incoming().status is string &&
+        incoming().message is string && incoming().message.size() <= 200 &&
+        incoming().clientTimestamp is string;
+      allow delete: if isAdmin();
+    }
+
+    // Temporary test collection for showcase query validation
+    match /test_showcase/{docId} {
+      allow get, list: if resource.data.showcaseApproved == true;
+      allow create: if true;
+    }
+
+    // 1. Users collection
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && isValidId(userId) &&
+        incoming().role == 'client' &&
+        (incoming().id == userId || incoming().uid == userId);
+      allow update: if (isOwner(userId) &&
+        incoming().role == existing().role) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // 2. Clients collection
+    match /clients/{clientId} {
+      allow get: if (isSignedIn() && (existing().userId == request.auth.uid || existing().uid == request.auth.uid || clientId == request.auth.uid)) || isAdmin();
+      allow list: if isAdmin();
+      allow create: if (isSignedIn() && 
+        (incoming().userId == request.auth.uid || incoming().uid == request.auth.uid || clientId == request.auth.uid) &&
+        incoming().role == 'client') || isAdmin();
+      allow update: if (isSignedIn() && 
+        (existing().userId == request.auth.uid || existing().uid == request.auth.uid || clientId == request.auth.uid) &&
+        incoming().role == existing().role) || isAdmin();
+      allow delete: if (isSignedIn() && (existing().userId == request.auth.uid || existing().uid == request.auth.uid || clientId == request.auth.uid)) || isAdmin();
+    }
+
+    // 3. Admins collection — Authorized VINORA Admin Accounts
+    match /admins/{adminId} {
+      allow get: if isSignedIn() && (request.auth.uid == adminId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() && (
+        isAdmin() ||
+        (request.auth.uid == adminId && (
+          request.auth.token.email == "shreyar2918@gmail.com" ||
+          request.auth.token.email == "admin@vinora.io" ||
+          request.auth.token.email == "architecture@vinora.io" ||
+          request.auth.token.email == "operations@vinora.io"
+        ))
+      ) &&
+      incoming().uid == request.auth.uid &&
+      incoming().role == "admin" &&
+      incoming().active is bool &&
+      incoming().name is string &&
+      incoming().email is string;
+      allow update: if isAdmin() && incoming().role == "admin";
+      allow delete: if isAdmin() && request.auth.token.email == "shreyar2918@gmail.com";
+    }
+
+    // 4. ProjectRequests collection (Start project inquiries)
+    match /projectRequests/{requestId} {
+      // Public showcase: anyone can read explicitly approved showcase projects
+      allow get, list: if resource.data.showcaseApproved == true;
+      allow get, list: if isSignedIn() && (
+        isAdmin() ||
+        resource.data.clientId == request.auth.uid ||
+        (request.auth.token.email != null && resource.data.email == request.auth.token.email)
+      );
+
+      // Inbound submission: clients or public can create, but CANNOT self-approve showcase
+      allow create: if isValidId(requestId) &&
+        incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 120 &&
+        incoming().email is string && incoming().email.size() <= 254 &&
+        incoming().projectDescription is string && incoming().projectDescription.size() <= 4000 &&
+        (!('showcaseApproved' in incoming()) || incoming().showcaseApproved == false);
+
+      // Allow admin update, or authenticated client to link their own request
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        (resource.data.clientId == request.auth.uid || (request.auth.token.email != null && resource.data.email == request.auth.token.email)) &&
+        incoming().diff(resource.data).affectedKeys().hasOnly(['clientId', 'clientProfile', 'updatedAt', 'isRegisteredClient'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    // 5. ContactEnquiries collection
+    match /contactEnquiries/{enquiryId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(enquiryId) &&
+        incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 120 &&
+        incoming().email is string && incoming().email.size() <= 254 &&
+        incoming().message is string && incoming().message.size() <= 3000;
+      allow update, delete: if isAdmin();
+    }
+
+    // 5b. ContactSubmissions collection (Direct contact form submissions)
+    match /contactSubmissions/{submissionId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isValidId(submissionId) &&
+        incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 120 &&
+        incoming().email is string && incoming().email.size() <= 254 &&
+        incoming().message is string && incoming().message.size() > 0 && incoming().message.size() <= 4000;
+      allow update, delete: if isAdmin();
+    }
+
+    // 6. Projects collection
+    match /projects/{projectId} {
+      // Public showcase: anyone can read explicitly approved showcase projects
+      allow get, list: if resource.data.showcaseApproved == true;
+      allow get, list: if isSignedIn() && (isAdmin() || resource.data.clientId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    // 7. Milestones collection
+    match /milestones/{milestoneId} {
+      allow get: if isAdmin() || (isSignedIn() &&
+        exists(/databases/$(database)/documents/projects/$(existing().projectId)) &&
+        get(/databases/$(database)/documents/projects/$(existing().projectId)).data.clientId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() &&
+        exists(/databases/$(database)/documents/projects/$(resource.data.projectId)) &&
+        get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.clientId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    // 8. ProjectUpdates collection
+    match /projectUpdates/{updateId} {
+      allow get: if isAdmin() ||
+        existing().visibility == 'all_clients' ||
+        (isSignedIn() && existing().visibility == 'specific_client' &&
+         exists(/databases/$(database)/documents/projects/$(existing().projectId)) &&
+         get(/databases/$(database)/documents/projects/$(existing().projectId)).data.clientId == request.auth.uid);
+      allow list: if isAdmin() ||
+        resource.data.visibility == 'all_clients' ||
+        (isSignedIn() && resource.data.visibility == 'specific_client' &&
+         exists(/databases/$(database)/documents/projects/$(resource.data.projectId)) &&
+         get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.clientId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    // 9. Messages collection (Project workspace communication)
+    match /messages/{messageId} {
+      allow get: if isAdmin() || (isSignedIn() &&
+        (existing().senderId == request.auth.uid ||
+         (exists(/databases/$(database)/documents/projects/$(existing().projectId)) &&
+          get(/databases/$(database)/documents/projects/$(existing().projectId)).data.clientId == request.auth.uid)));
+      allow list: if isAdmin() || (isSignedIn() &&
+        (resource.data.senderId == request.auth.uid ||
+         (exists(/databases/$(database)/documents/projects/$(resource.data.projectId)) &&
+          get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.clientId == request.auth.uid)));
+      allow create: if isAdmin() || (isSignedIn() &&
+        incoming().senderId == request.auth.uid &&
+        exists(/databases/$(database)/documents/projects/$(incoming().projectId)) &&
+        get(/databases/$(database)/documents/projects/$(incoming().projectId)).data.clientId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // 10. Meetings & Meeting Requests collection
+    match /meetings/{meetingId} {
+      allow get: if isAdmin() || (isSignedIn() && (resource.data.clientId == request.auth.uid || existing().clientId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isAdmin() || (isSignedIn() && incoming().clientId == request.auth.uid && incoming().status == 'Pending');
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        existing().clientId == request.auth.uid &&
+        incoming().clientId == existing().clientId &&
+        incoming().status == existing().status &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['preferredDate', 'preferredTime', 'purpose', 'title', 'adminNotes', 'notes', 'meetingType', 'platform', 'updatedAt'])
+      ) || (
+        isSignedIn() &&
+        existing().clientId == request.auth.uid &&
+        existing().status in ['Pending', 'Approved', 'Rescheduled'] &&
+        incoming().clientId == existing().clientId &&
+        incoming().status == 'Cancelled' &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'cancellationReason', 'cancelledBy', 'cancelledAt', 'updatedAt'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /meetingRequests/{requestId} {
+      allow get: if isAdmin() || (isSignedIn() && (resource.data.clientId == request.auth.uid || existing().clientId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isAdmin() || (isSignedIn() && incoming().clientId == request.auth.uid && incoming().status == 'Pending');
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        existing().clientId == request.auth.uid &&
+        incoming().clientId == existing().clientId &&
+        incoming().status == existing().status &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['preferredDate', 'preferredTime', 'purpose', 'title', 'notes', 'updatedAt'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    // 11. Requests collection (Client change/support requests)
+    match /requests/{requestId} {
+      allow get: if isAdmin() || (isSignedIn() && existing().clientId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isAdmin() || (isSignedIn() && incoming().clientId == request.auth.uid);
+      allow update: if isAdmin() || (isSignedIn() && existing().clientId == request.auth.uid && incoming().clientId == existing().clientId);
+      allow delete: if isAdmin();
+    }
+
+    // 12. Documents collection
+    match /documents/{documentId} {
+      allow get: if existing().visibility == 'public' || isAdmin() || (isSignedIn() && (existing().clientId == request.auth.uid || existing().clientUid == request.auth.uid));
+      allow list: if resource.data.visibility == 'public' || isAdmin() || (isSignedIn() && (resource.data.clientId == request.auth.uid || resource.data.clientUid == request.auth.uid));
+      allow write: if isAdmin();
+    }
+
+    // 13. Proposals collection
+    match /proposals/{proposalId} {
+      allow get: if isAdmin() || (isSignedIn() && (existing().clientId == request.auth.uid || existing().clientUid == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && (resource.data.clientId == request.auth.uid || resource.data.clientUid == request.auth.uid));
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        (existing().clientId == request.auth.uid || existing().clientUid == request.auth.uid) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'clientResponse', 'responseAt', 'updatedAt']) &&
+        (incoming().status == 'Accepted' || incoming().status == 'Rejected') &&
+        (existing().status == 'Pending' || existing().status == 'sent' || existing().status == 'draft')
+      );
+    }
+
+    // 14. Invoices collection
+    match /invoices/{invoiceId} {
+      allow get: if isAdmin() || (isSignedIn() && (existing().clientId == request.auth.uid || existing().clientUid == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && (resource.data.clientId == request.auth.uid || resource.data.clientUid == request.auth.uid));
+      allow write: if isAdmin();
+    }
+
+    // 15. Payments collection (Immutable ledger created/managed by server or admin)
+    match /payments/{paymentId} {
+      allow get: if isAdmin() || (isSignedIn() && (existing().clientId == request.auth.uid || existing().clientUid == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && (resource.data.clientId == request.auth.uid || resource.data.clientUid == request.auth.uid));
+      allow write: if isAdmin();
+    }
+
+    // 16. Referrals collection (Protected ledger; client read-only for own referrals, admin-managed)
+    match /referrals/{referralId} {
+      allow get: if isAdmin() || (isSignedIn() && (
+        existing().referrerUid == request.auth.uid ||
+        existing().referrerClientId == request.auth.uid ||
+        existing().referredClientUid == request.auth.uid
+      ));
+      allow list: if isAdmin() || (isSignedIn() && (
+        resource.data.referrerUid == request.auth.uid ||
+        resource.data.referrerClientId == request.auth.uid ||
+        resource.data.referredClientUid == request.auth.uid
+      ));
+      allow write: if isAdmin();
+    }
+
+    // 16b. ReferralCodes registry mapping
+    match /referralCodes/{code} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // 17. ShowcaseApprovals collection
+    match /showcaseApprovals/{approvalId} {
+      allow get: if isAdmin() || (isSignedIn() && existing().clientId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isAdmin() || (isSignedIn() && incoming().clientId == request.auth.uid);
+      allow update: if isAdmin() || (isSignedIn() && existing().clientId == request.auth.uid && incoming().clientId == existing().clientId);
+      allow delete: if isAdmin();
+    }
+
+    // 18. OtpRequests collection (Strictly server-side; client has no direct Firestore access)
+    match /otpRequests/{otpId} {
+      allow read, write: if false;
+    }
+
+    // 19. Notifications collection
+    match /notifications/{notificationId} {
+      allow get: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow update: if isSignedIn() && existing().userId == request.auth.uid &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['read', 'readAt']);
+      allow create, delete: if isAdmin();
+    }
+
+    // 20. ActivityLogs collection (Strictly server-side audit trail; admin read only)
+    match /activityLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // 21. AuthCredentials collection (Strictly server-side credentials; client direct access forbidden)
+    match /authCredentials/{credId} {
+      allow read, write: if false;
+    }
+
+    // 22. Conversations & Real-Time Client-Admin Messaging
+    match /conversations/{conversationId} {
+      allow get: if isAdmin() || (isSignedIn() && (conversationId == request.auth.uid || resource.data.clientId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.clientId == request.auth.uid);
+      allow create: if isAdmin() || (isSignedIn() && (conversationId == request.auth.uid || incoming().clientId == request.auth.uid));
+      allow update: if isAdmin() || (isSignedIn() && (conversationId == request.auth.uid || existing().clientId == request.auth.uid));
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow get: if isAdmin() || (isSignedIn() && (conversationId == request.auth.uid || resource.data.clientId == request.auth.uid));
+        allow list: if isAdmin() || (isSignedIn() && (conversationId == request.auth.uid || resource.data.clientId == request.auth.uid));
+        allow create: if isAdmin() || (isSignedIn() && (conversationId == request.auth.uid || incoming().clientId == request.auth.uid) && incoming().senderUid == request.auth.uid);
+        allow update: if isAdmin() || (isSignedIn() && (conversationId == request.auth.uid || existing().clientId == request.auth.uid));
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}

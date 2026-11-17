@@ -1,0 +1,5 @@
+- [x] Restore the previous VINORA presentation while preserving existing routes, auth, and backend abstractions
+- [x] Remove all hamburger/menu controls, slide arrows/counters, phone text, and address text
+- [x] Restore scroll-driven slide progression with active-slide and progress-line animation
+- [x] Verify every route, build diagnostics, console errors, and mobile overflow
+- [ ] Redesign the existing VINORA presentation in monochrome with centered IDEA → PLAN → DESIGN → BUILD → LAUNCH motion, compact tappable process stages, working menu links, and responsive spacing

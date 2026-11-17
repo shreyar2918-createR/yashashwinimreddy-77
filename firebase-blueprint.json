@@ -1,0 +1,784 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Base authenticated user profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 254 },
+        "fullName": { "type": "string", "maxLength": 120 },
+        "role": {
+          "type": "string",
+          "enum": ["client", "admin", "super_admin", "project_manager", "content_admin"]
+        },
+        "phoneNumber": { "type": "string", "maxLength": 30 },
+        "avatarUrl": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "fullName", "role", "createdAt"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Client organization and contact profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "companyName": { "type": "string", "maxLength": 150 },
+        "contactEmail": { "type": "string", "maxLength": 254 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "billingAddress": { "type": "string", "maxLength": 300 },
+        "status": { "type": "string", "enum": ["active", "suspended", "archived"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "contactEmail", "status", "createdAt"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Internal authorized administrator record for VINORA platform",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "uid": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 254 },
+        "role": {
+          "type": "string",
+          "enum": ["admin"]
+        },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "name", "email", "role", "active", "createdAt", "updatedAt"]
+    },
+    "ProjectRequest": {
+      "title": "ProjectRequest",
+      "description": "Inbound start-project application submitted by a prospect",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "clientProfile": { "type": "object" },
+        "name": { "type": "string", "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 254 },
+        "businessName": { "type": "string", "maxLength": 150 },
+        "serviceRequired": { "type": "string", "maxLength": 100 },
+        "projectDescription": { "type": "string", "maxLength": 4000 },
+        "budget": { "type": "string", "maxLength": 80 },
+        "expectedCompletionDate": { "type": "string", "maxLength": 60 },
+        "referenceWebsites": { "type": "string", "maxLength": 1000 },
+        "preferredCommunication": { "type": "string", "maxLength": 60 },
+        "additionalRequirements": { "type": "string", "maxLength": 2000 },
+        "attachmentPaths": { "type": "array" },
+        "status": {
+          "type": "string"
+        },
+        "showcaseApproved": { "type": "boolean" },
+        "approvedAt": { "type": "string", "format": "date-time" },
+        "approvedBy": { "type": "string", "maxLength": 254 },
+        "rejectionReason": { "type": "string", "maxLength": 1000 },
+        "showcaseTitle": { "type": "string", "maxLength": 160 },
+        "imageUrl": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "serviceRequired",
+        "projectDescription",
+        "status",
+        "createdAt"
+      ]
+    },
+    "ContactEnquiry": {
+      "title": "ContactEnquiry",
+      "description": "General contact enquiry submitted through the public website",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 254 },
+        "subject": { "type": "string", "maxLength": 200 },
+        "message": { "type": "string", "maxLength": 3000 },
+        "status": { "type": "string", "enum": ["unread", "in_progress", "resolved", "archived"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "email", "message", "status", "createdAt"]
+    },
+    "ContactSubmission": {
+      "title": "ContactSubmission",
+      "description": "Direct contact form submission stored in the contactSubmissions collection",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 120 },
+        "email": { "type": "string", "maxLength": 254 },
+        "subject": { "type": "string", "maxLength": 200 },
+        "message": { "type": "string", "maxLength": 4000 },
+        "status": { "type": "string", "enum": ["New", "Read", "Responded", "Archived"] },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string", "maxLength": 128 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 254 },
+        "isGuest": { "type": "boolean" }
+      },
+      "required": ["id", "name", "email", "message", "status", "createdAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Active or historical digital engagement for a client",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 160 },
+        "description": { "type": "string", "maxLength": 4000 },
+        "status": { "type": "string", "maxLength": 50 },
+        "assignedAdminId": { "type": "string", "maxLength": 128 },
+        "progress": { "type": "number" },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "dueAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" },
+        "showcaseApproved": { "type": "boolean" },
+        "approvedAt": { "type": "string", "format": "date-time" },
+        "approvedBy": { "type": "string", "maxLength": 254 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "clientId", "title", "status", "progress", "createdAt"]
+    },
+    "Milestone": {
+      "title": "Milestone",
+      "description": "Project milestone tracking delivery phases",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 160 },
+        "description": { "type": "string", "maxLength": 1500 },
+        "deadline": { "type": "string", "format": "date-time" },
+        "status": {
+          "type": "string",
+          "enum": ["not_started", "in_progress", "blocked", "in_review", "completed"]
+        },
+        "progress": { "type": "number" },
+        "completedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "projectId", "title", "status", "progress", "createdAt"]
+    },
+    "ProjectUpdate": {
+      "title": "ProjectUpdate",
+      "description": "Company-wide or project-specific progress announcements",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 200 },
+        "body": { "type": "string", "maxLength": 5000 },
+        "visibility": {
+          "type": "string",
+          "enum": ["all_clients", "selected_clients", "specific_client", "specific_project"]
+        },
+        "pinned": { "type": "boolean" },
+        "publishedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "body", "visibility", "createdAt"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Real-time communication message inside a project workspace",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "senderId": { "type": "string", "maxLength": 128 },
+        "senderRole": { "type": "string", "enum": ["client", "admin"] },
+        "body": { "type": "string", "maxLength": 4000 },
+        "attachments": { "type": "array" },
+        "readBy": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "projectId", "senderId", "body", "createdAt"]
+    },
+    "Meeting": {
+      "title": "Meeting",
+      "description": "Scheduled discovery, review or status video conference and in-person meeting requests",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "clientName": { "type": "string", "maxLength": 160 },
+        "clientEmail": { "type": "string", "maxLength": 254 },
+        "clientCompany": { "type": "string", "maxLength": 160 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "projectTitle": { "type": "string", "maxLength": 160 },
+        "title": { "type": "string", "maxLength": 160 },
+        "purpose": { "type": "string", "maxLength": 2000 },
+        "meetingType": {
+          "type": "string",
+          "enum": ["Online Meeting", "In-Person Meeting"]
+        },
+        "platform": {
+          "type": "string",
+          "enum": ["Google Meet", "Microsoft Teams", "In-Person"]
+        },
+        "meetingProvider": { "type": "string", "maxLength": 64 },
+        "externalEventId": { "type": "string", "maxLength": 256 },
+        "preferredDate": { "type": "string", "maxLength": 32 },
+        "preferredTime": { "type": "string", "maxLength": 32 },
+        "scheduledAt": { "type": "string", "format": "date-time" },
+        "meetingUrl": { "type": "string", "maxLength": 500 },
+        "location": { "type": "string", "maxLength": 500 },
+        "status": {
+          "type": "string",
+          "enum": ["Pending", "Approved", "Rescheduled", "Rejected", "Completed", "Cancelled"]
+        },
+        "adminNotes": { "type": "string", "maxLength": 2000 },
+        "rescheduleReason": { "type": "string", "maxLength": 1000 },
+        "rejectionReason": { "type": "string", "maxLength": 1000 },
+        "cancellationReason": { "type": "string", "maxLength": 1000 },
+        "cancelledBy": { "type": "string", "maxLength": 160 },
+        "cancelledAt": { "type": "string", "format": "date-time" },
+        "approvedBy": { "type": "string", "maxLength": 128 },
+        "approvedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id",
+        "clientId",
+        "title",
+        "purpose",
+        "meetingType",
+        "preferredDate",
+        "preferredTime",
+        "status",
+        "createdAt"
+      ]
+    },
+    "ClientRequest": {
+      "title": "ClientRequest",
+      "description": "Change request or support ticket raised by client",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 160 },
+        "details": { "type": "string", "maxLength": 3000 },
+        "priority": { "type": "string", "enum": ["low", "normal", "high", "urgent"] },
+        "status": {
+          "type": "string",
+          "enum": ["submitted", "in_review", "approved", "declined", "completed"]
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "clientId", "title", "details", "status", "createdAt"]
+    },
+    "Document": {
+      "title": "Document",
+      "description": "Secure file, brief, agreement or asset record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "clientUid": { "type": "string", "maxLength": 128 },
+        "clientName": { "type": "string", "maxLength": 150 },
+        "clientEmail": { "type": "string", "maxLength": 254 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "projectTitle": { "type": "string", "maxLength": 160 },
+        "name": { "type": "string", "maxLength": 200 },
+        "fileName": { "type": "string", "maxLength": 200 },
+        "storagePath": { "type": "string", "maxLength": 600 },
+        "downloadUrl": { "type": "string", "maxLength": 2000 },
+        "contentType": { "type": "string", "maxLength": 120 },
+        "fileType": { "type": "string", "maxLength": 50 },
+        "sizeBytes": { "type": "number" },
+        "visibility": { "type": "string", "enum": ["client", "internal", "public"] },
+        "uploadedBy": { "type": "string", "maxLength": 150 },
+        "uploadedByEmail": { "type": "string", "maxLength": 254 },
+        "uploadedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "clientId", "name", "storagePath", "visibility", "createdAt"]
+    },
+    "Proposal": {
+      "title": "Proposal",
+      "description": "Formal scope and pricing proposal for a project",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "clientUid": { "type": "string", "maxLength": 128 },
+        "clientName": { "type": "string", "maxLength": 150 },
+        "clientEmail": { "type": "string", "maxLength": 254 },
+        "clientCompany": { "type": "string", "maxLength": 160 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "projectName": { "type": "string", "maxLength": 160 },
+        "projectTitle": { "type": "string", "maxLength": 160 },
+        "title": { "type": "string", "maxLength": 200 },
+        "scope": { "type": "string", "maxLength": 8000 },
+        "deliverables": { "type": "array" },
+        "timeline": { "type": "string", "maxLength": 120 },
+        "totalPrice": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 10 },
+        "advanceAmount": { "type": "number" },
+        "remainingAmount": { "type": "number" },
+        "validityDate": { "type": "string", "maxLength": 40 },
+        "terms": { "type": "string", "maxLength": 4000 },
+        "notes": { "type": "string", "maxLength": 2000 },
+        "status": {
+          "type": "string",
+          "enum": [
+            "Pending",
+            "Accepted",
+            "Rejected",
+            "Expired",
+            "Withdrawn",
+            "Draft",
+            "sent",
+            "draft",
+            "accepted",
+            "rejected"
+          ]
+        },
+        "createdBy": { "type": "string", "maxLength": 128 },
+        "createdByAdminName": { "type": "string", "maxLength": 150 },
+        "createdByAdminEmail": { "type": "string", "maxLength": 254 },
+        "clientResponse": { "type": "string", "maxLength": 2000 },
+        "responseAt": { "type": "string", "format": "date-time" },
+        "withdrawnAt": { "type": "string", "format": "date-time" },
+        "withdrawnBy": { "type": "string", "maxLength": 150 },
+        "withdrawnReason": { "type": "string", "maxLength": 1000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "clientId", "scope", "totalPrice", "currency", "status", "createdAt"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Billing statement for project milestones, engineering scopes or retainers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "invoiceNumber": { "type": "string", "maxLength": 60 },
+        "number": { "type": "string", "maxLength": 60 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "clientUid": { "type": "string", "maxLength": 128 },
+        "clientName": { "type": "string", "maxLength": 160 },
+        "clientEmail": { "type": "string", "maxLength": 254 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "projectName": { "type": "string", "maxLength": 160 },
+        "issueDate": { "type": "string", "maxLength": 40 },
+        "dueDate": { "type": "string", "maxLength": 40 },
+        "lineItems": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "tax": { "type": "number" },
+        "taxRate": { "type": "number" },
+        "taxAmount": { "type": "number" },
+        "discount": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "total": { "type": "number" },
+        "amountPaid": { "type": "number" },
+        "balanceDue": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 10 },
+        "status": {
+          "type": "string",
+          "enum": [
+            "Draft",
+            "Sent",
+            "Partially Paid",
+            "Paid",
+            "Overdue",
+            "Cancelled",
+            "draft",
+            "issued",
+            "paid",
+            "overdue",
+            "cancelled"
+          ]
+        },
+        "notes": { "type": "string", "maxLength": 3000 },
+        "createdByAdminUid": { "type": "string", "maxLength": 128 },
+        "createdByAdminName": { "type": "string", "maxLength": 160 },
+        "createdByAdminEmail": { "type": "string", "maxLength": 254 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "sentAt": { "type": "string", "format": "date-time" },
+        "cancelledAt": { "type": "string", "format": "date-time" },
+        "cancelledBy": { "type": "string", "maxLength": 160 },
+        "cancellationReason": { "type": "string", "maxLength": 1000 },
+        "issuedAt": { "type": "string", "format": "date-time" },
+        "dueAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id",
+        "invoiceNumber",
+        "clientId",
+        "totalAmount",
+        "balanceDue",
+        "currency",
+        "status",
+        "createdAt"
+      ]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Recorded gateway or wire transaction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "clientUid": { "type": "string", "maxLength": 128 },
+        "clientName": { "type": "string", "maxLength": 160 },
+        "clientEmail": { "type": "string", "maxLength": 254 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "projectName": { "type": "string", "maxLength": 160 },
+        "invoiceId": { "type": "string", "maxLength": 128 },
+        "invoiceNumber": { "type": "string", "maxLength": 60 },
+        "receiptNumber": { "type": "string", "maxLength": 64 },
+        "razorpayOrderId": { "type": "string", "maxLength": 128 },
+        "razorpayPaymentId": { "type": "string", "maxLength": 128 },
+        "razorpaySignature": { "type": "string", "maxLength": 256 },
+        "amount": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 10 },
+        "gateway": { "type": "string", "maxLength": 50 },
+        "paymentMethod": { "type": "string", "maxLength": 50 },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "processing", "paid", "failed", "cancelled", "refunded"]
+        },
+        "failureReason": { "type": "string", "maxLength": 500 },
+        "cancelledAt": { "type": "string", "format": "date-time" },
+        "paidAt": { "type": "string", "format": "date-time" },
+        "verifiedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "clientId", "amount", "currency", "status", "createdAt"]
+    },
+    "Referral": {
+      "title": "Referral",
+      "description": "Client referral tracking and status",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "referralId": { "type": "string", "maxLength": 128 },
+        "referrerUid": { "type": "string", "maxLength": 128 },
+        "referrerClientId": { "type": "string", "maxLength": 128 },
+        "referrerName": { "type": "string", "maxLength": 160 },
+        "referrerEmail": { "type": "string", "maxLength": 254 },
+        "referredClientUid": { "type": "string", "maxLength": 128 },
+        "referredName": { "type": "string", "maxLength": 160 },
+        "referredEmail": { "type": "string", "maxLength": 254 },
+        "referralCode": { "type": "string", "maxLength": 50 },
+        "code": { "type": "string", "maxLength": 50 },
+        "status": {
+          "type": "string",
+          "enum": [
+            "Pending",
+            "Registered",
+            "Qualified",
+            "Rewarded",
+            "Cancelled",
+            "pending",
+            "registered",
+            "qualified",
+            "rewarded",
+            "cancelled"
+          ]
+        },
+        "rewardType": {
+          "type": "string",
+          "enum": ["points", "credit", "discount", "custom"]
+        },
+        "rewardAmount": { "type": "number" },
+        "rewardCurrency": { "type": "string", "maxLength": 20 },
+        "rewardStatus": {
+          "type": "string",
+          "enum": ["pending", "approved", "credited", "cancelled"]
+        },
+        "rewardDescription": { "type": "string", "maxLength": 500 },
+        "cancellationReason": { "type": "string", "maxLength": 1000 },
+        "cancelledBy": { "type": "string", "maxLength": 128 },
+        "cancelledAt": { "type": "string", "format": "date-time" },
+        "registeredAt": { "type": "string", "format": "date-time" },
+        "qualifiedAt": { "type": "string", "format": "date-time" },
+        "rewardedAt": { "type": "string", "format": "date-time" },
+        "completedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "referrerUid", "referralCode", "status", "createdAt"]
+    },
+    "ReferralCode": {
+      "title": "ReferralCode",
+      "description": "Unique client referral code registration and lookup map",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "maxLength": 50 },
+        "referrerUid": { "type": "string", "maxLength": 128 },
+        "referrerName": { "type": "string", "maxLength": 160 },
+        "referrerEmail": { "type": "string", "maxLength": 254 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["code", "referrerUid", "createdAt"]
+    },
+    "ShowcaseApproval": {
+      "title": "ShowcaseApproval",
+      "description": "Client permission to feature their completed project publicly",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "isApproved": { "type": "boolean" },
+        "allowedMedia": { "type": "array" },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "signedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "projectId", "clientId", "isApproved", "createdAt"]
+    },
+    "OtpRequest": {
+      "title": "OtpRequest",
+      "description": "Transient verification attempt records managed server-side",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "identifier": { "type": "string", "maxLength": 254 },
+        "type": { "type": "string", "enum": ["email", "phone"] },
+        "otpHash": { "type": "string", "maxLength": 128 },
+        "salt": { "type": "string", "maxLength": 64 },
+        "expiresAt": { "type": "string", "format": "date-time" },
+        "cooldownUntil": { "type": "string", "format": "date-time" },
+        "attempts": { "type": "number" },
+        "maxAttempts": { "type": "number" },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "verified",
+            "consumed",
+            "expired",
+            "invalidated",
+            "max_attempts_exceeded"
+          ]
+        },
+        "consumed": { "type": "boolean" },
+        "verificationToken": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id",
+        "identifier",
+        "type",
+        "otpHash",
+        "salt",
+        "expiresAt",
+        "attempts",
+        "consumed",
+        "status",
+        "createdAt"
+      ]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User notification alert",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 160 },
+        "body": { "type": "string", "maxLength": 1000 },
+        "type": { "type": "string", "maxLength": 50 },
+        "link": { "type": "string", "maxLength": 400 },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "title", "body", "read", "createdAt"]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "System and user audit trail record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "actorId": { "type": "string", "maxLength": 128 },
+        "actorRole": { "type": "string", "maxLength": 50 },
+        "action": { "type": "string", "maxLength": 100 },
+        "targetType": { "type": "string", "maxLength": 80 },
+        "targetId": { "type": "string", "maxLength": 128 },
+        "metadata": { "type": "object" },
+        "ipHash": { "type": "string", "maxLength": 128 },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "actorId", "action", "targetType", "timestamp"]
+    },
+    "Conversation": {
+      "title": "Conversation",
+      "description": "Direct communication thread between client and VINORA admin team",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "clientName": { "type": "string", "maxLength": 120 },
+        "clientEmail": { "type": "string", "maxLength": 254 },
+        "adminUid": { "type": "string", "maxLength": 128 },
+        "adminName": { "type": "string", "maxLength": 120 },
+        "adminEmail": { "type": "string", "maxLength": 254 },
+        "lastMessageText": { "type": "string", "maxLength": 2000 },
+        "lastMessageTimestamp": { "type": "string", "format": "date-time" },
+        "lastSenderRole": { "type": "string", "enum": ["client", "admin"] },
+        "lastSenderUid": { "type": "string", "maxLength": 128 },
+        "lastSenderName": { "type": "string", "maxLength": 120 },
+        "unreadCountClient": { "type": "integer" },
+        "unreadCountAdmin": { "type": "integer" },
+        "status": { "type": "string", "enum": ["active", "archived"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id",
+        "clientId",
+        "clientName",
+        "clientEmail",
+        "lastMessageText",
+        "lastMessageTimestamp",
+        "lastSenderRole",
+        "unreadCountClient",
+        "unreadCountAdmin",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ConversationMessage": {
+      "title": "ConversationMessage",
+      "description": "Individual message inside a client-admin conversation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "conversationId": { "type": "string", "maxLength": 128 },
+        "clientId": { "type": "string", "maxLength": 128 },
+        "senderUid": { "type": "string", "maxLength": 128 },
+        "senderEmail": { "type": "string", "maxLength": 254 },
+        "senderName": { "type": "string", "maxLength": 120 },
+        "senderRole": { "type": "string", "enum": ["client", "admin"] },
+        "recipientRole": { "type": "string", "enum": ["admin", "client"] },
+        "text": { "type": "string", "maxLength": 4000 },
+        "read": { "type": "boolean" },
+        "readAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "id",
+        "conversationId",
+        "clientId",
+        "senderUid",
+        "senderEmail",
+        "senderName",
+        "senderRole",
+        "recipientRole",
+        "text",
+        "read",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/conversations/{conversationId}": {
+      "schema": "Conversation",
+      "description": "Client-admin messaging conversations"
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": "ConversationMessage",
+      "description": "Real-time messages within a conversation"
+    },
+    "/users/{userId}": { "schema": "User", "description": "Authenticated user profiles" },
+    "/clients/{clientId}": { "schema": "Client", "description": "Client profile records" },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Admin registry and authorization credentials"
+    },
+    "/projectRequests/{requestId}": {
+      "schema": "ProjectRequest",
+      "description": "Start project inquiries from prospects"
+    },
+    "/contactEnquiries/{enquiryId}": {
+      "schema": "ContactEnquiry",
+      "description": "General contact form inquiries"
+    },
+    "/contactSubmissions/{submissionId}": {
+      "schema": "ContactSubmission",
+      "description": "Public contact form submissions"
+    },
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Client engagements and projects"
+    },
+    "/milestones/{milestoneId}": {
+      "schema": "Milestone",
+      "description": "Project delivery milestones"
+    },
+    "/projectUpdates/{updateId}": {
+      "schema": "ProjectUpdate",
+      "description": "Broadcast and project status updates"
+    },
+    "/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Real-time communication workspace messages"
+    },
+    "/meetings/{meetingId}": {
+      "schema": "Meeting",
+      "description": "Scheduled client and team meetings"
+    },
+    "/meetingRequests/{requestId}": {
+      "schema": "Meeting",
+      "description": "Client meeting and consultation requests"
+    },
+    "/requests/{requestId}": {
+      "schema": "ClientRequest",
+      "description": "Client change requests and support tickets"
+    },
+    "/documents/{documentId}": {
+      "schema": "Document",
+      "description": "Client and project document metadata"
+    },
+    "/proposals/{proposalId}": {
+      "schema": "Proposal",
+      "description": "Project proposals and scopes"
+    },
+    "/invoices/{invoiceId}": { "schema": "Invoice", "description": "Project billing invoices" },
+    "/payments/{paymentId}": {
+      "schema": "Payment",
+      "description": "Transaction and payment records"
+    },
+    "/referrals/{referralId}": {
+      "schema": "Referral",
+      "description": "Client referral tracking records"
+    },
+    "/referralCodes/{code}": {
+      "schema": "ReferralCode",
+      "description": "Registered referral code mapping"
+    },
+    "/showcaseApprovals/{approvalId}": {
+      "schema": "ShowcaseApproval",
+      "description": "Public portfolio showcase permissions"
+    },
+    "/otpRequests/{otpId}": { "schema": "OtpRequest", "description": "Server-side OTP records" },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Targeted user notifications"
+    },
+    "/activityLogs/{logId}": { "schema": "ActivityLog", "description": "Auditable event records" }
+  }
+}

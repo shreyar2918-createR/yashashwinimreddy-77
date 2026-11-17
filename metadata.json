@@ -1,0 +1,6 @@
+{
+  "name": "VINORA",
+  "description": "Digital services company website and platform turning ideas into impact through strategy, design, and technology.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

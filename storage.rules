@@ -1,0 +1,35 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == "shreyar2918@gmail.com" ||
+        request.auth.token.email == "admin@vinora.io" ||
+        request.auth.token.email == "architecture@vinora.io" ||
+        request.auth.token.email == "operations@vinora.io" ||
+        firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Client Documents storage bucket path: client_documents/{clientId}/{documentId}/{fileName}
+    match /client_documents/{clientId}/{allPaths=**} {
+      // Clients can only read/download files stored under their own client UID.
+      // Verified VINORA admins can read all client files.
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == clientId);
+
+      // Only authorized VINORA admins can upload, modify, or delete client files.
+      allow write: if isAdmin();
+    }
+
+    // Fallback: Admin-only for any other storage paths
+    match /{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
